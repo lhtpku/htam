@@ -180,9 +180,9 @@ class PathIO():
 		if self.file_type == '.pkl':
 			df.to_pickle(self.path)
 		elif self.file_type == '.csv':
-			df.to_csv(self.path,index = None)
+			df.to_csv(self.path, index=None)
 		elif self.file_type == '.xlsx':
-			df.to_excel(self.path,index = None)
+			df.to_excel(self.path, index=None)
 		else:
 			logging.error('type of %s should have been added to Class pathIO' %self.file_type)
 
@@ -265,7 +265,7 @@ class MyWind():
 	def get_pct_change(self,start,end,idx):
 		wind_data = w.wsd(idx, "pct_chg", start, end, "")
 		dates = [pd.to_datetime(k.date()) for k in wind_data.Times]
-		pcts = [k / 100 for k in wind_data.Data[0]]
+		pcts = [k/100 for k in wind_data.Data[0]]
 		return dict(zip(dates, pcts))
 
 
