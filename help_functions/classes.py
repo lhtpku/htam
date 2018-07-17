@@ -1,6 +1,133 @@
 from .module import *
 import time
 
+class JsonIO():
+	def __init__(self,path):
+		self.path = path
+
+	def write(self,data):
+		with open(self.path, 'w') as f:
+			json.dump(data, f)
+
+	def read(self):
+		with open(self.path, 'r') as f:
+			data = json.load(f)
+		return data
+
+
+class FtpSendRecieve():
+	def __init__(self,ip,user,psw,transport_path=''):
+		self.ftp = FTP(ip)
+		self.ftp.login(user=user, passwd=psw)
+		self.ftp.cwd(transport_path)
+
+	def get_file(self, cate=''):
+		all_file = self.ftp.nlst()
+		if cate == '':
+			return all_file
+		return [file for file in all_file if file.endswith(cate)]
+
+	def mget(self,new_path_dir,path):
+		new_path = os.path.join(new_path_dir,path)
+		with open(new_path, 'wb') as get_new_file:
+			try:
+				self.ftp.retrbinary('RETR %s'%path, get_new_file.write, 1024)
+			except:
+				pass
+		return
+
+	def mput(self,old_path_dir,new_path_dir,path):
+		old_path = os.path.join(old_path_dir,path)
+		new_path = os.path.join(new_path_dir,path)
+		with open(new_path, 'rb') as put_new_file:
+			try:
+				self.ftp.storbinary('STOR %s'%old_path,put_new_file,1024)
+			except:
+				pass
+		return
+
+
+class Timer:
+	def __init__(self,func=time.clock):
+		self.elapsed = 0.0
+		self._func = func
+		self._start = None
+
+	def start(self):
+		if self._start is not None:
+			raise RuntimeError('Already started')
+		self._start = self._func()
+
+	def stop(self):
+		if self._start is None:
+			raise RuntimeError('Not Started')
+		end = self._func()
+		self.elapsed += end - self._start
+		self._start = None
+
+	def reset(self):
+		self.elapsed = 0.0
+
+	@property
+	def running(self):
+		return self._start is not None
+
+	def __enter__(self):
+		self.start()
+		return self
+
+	def __exit__(self,*args):
+		self.stop()
+
+	def trade_time_run(self,outside_func,*args):
+		tick_time = datetime.now().strftime('%H%M%S')
+		morning = (tick_time > '0913') & (tick_time < '1131')
+		noon = (tick_time > '1129') & (tick_time < '1258')
+		after = (tick_time > '1257') & (tick_time < '1502')
+		#############################################
+		outside_func(*args)
+		logging.info('--%s--'%tick_time)
+		sleep_time = 900 if noon else 120
+		time.sleep(sleep_time)
+		if not (morning or after or noon):
+			raise SystemExit('---Close Trading---')
+		return
+
+	def try_except_sleep(self,func,*args):
+		try:
+			return func(*args)
+		except:
+			time.sleep(10)
+			return self.try_except_sleep(self,func,*args)
+
+
+class MyCode():
+	__slots__ = ['code']
+
+	def __init__(self,code):
+		self.code = self.normal_code(code)
+		
+	def normal_code(self,code):
+		code = str(code)
+		return code if len(code) > 6 else code.rjust(6,'0')
+
+	def secu_code(self):
+		return self.code
+
+	def wind_code(self):
+		self.code = self.code[:6]
+		if self.code[0] == '6':
+			tmp = self.code + '.SH'
+		elif self.code[:2] == '80':
+			tmp = self.code + '.SI'
+		else:
+			tmp = self.code + '.SZ'
+		return tmp
+
+	def map_other_code(self,diction):
+		return diction[self.code]
+
+
 class TwoList(list):
 	def __init__(self,list1,list2):
 		self.list1 = list1
@@ -85,52 +212,6 @@ class MyList(list):
 		return self.list[idx+lag]
 
 
-class JsonIO():
-	def __init__(self,path):
-		self.path = path
-
-	def write(self,data):
-		with open(self.path, 'w') as f:
-			json.dump(data, f)
-
-	def read(self):
-		with open(self.path, 'r') as f:
-			data = json.load(f)
-		return data
-
-
-class FtpSendRecieve():
-	def __init__(self,ip,user,psw,transport_path=''):
-		self.ftp = FTP(ip)
-		self.ftp.login(user=user, passwd=psw)
-		self.ftp.cwd(transport_path)
-
-	def get_file(self, cate=''):
-		all_file = self.ftp.nlst()
-		if cate == '':
-			return all_file
-		return [file for file in all_file if file.endswith(cate)]
-
-	def mget(self,new_path_dir,path):
-		new_path = os.path.join(new_path_dir,path)
-		with open(new_path, 'wb') as get_new_file:
-			try:
-				self.ftp.retrbinary('RETR %s'%path, get_new_file.write, 1024)
-			except:
-				pass
-		return
-
-	def mput(self,old_path_dir,new_path_dir,path):
-		old_path = os.path.join(old_path_dir,path)
-		new_path = os.path.join(new_path_dir,path)
-		with open(new_path, 'rb') as put_new_file:
-			try:
-				self.ftp.storbinary('STOR %s'%old_path,put_new_file,1024)
-			except:
-				pass
-		return
-
-
 class MyDir():
 	def __init__(self,direc):
 		assert isinstance(direc,str), 'direc should be string or unicode.'
@@ -180,38 +261,11 @@ class PathIO():
 		if self.file_type == '.pkl':
 			df.to_pickle(self.path)
 		elif self.file_type == '.csv':
-			df.to_csv(self.path, index=None)
+			df.to_csv(self.path,index = None)
 		elif self.file_type == '.xlsx':
-			df.to_excel(self.path, index=None)
+			df.to_excel(self.path,index = None)
 		else:
 			logging.error('type of %s should have been added to Class pathIO' %self.file_type)
-
-
-class MyCode():
-	__slots__ = ['code']
-
-	def __init__(self,code):
-		self.code = self.normal_code(code)
-		
-	def normal_code(self,code):
-		code = str(code)
-		return code if len(code) > 6 else code.rjust(6,'0')
-
-	def secu_code(self):
-		return self.code
-
-	def wind_code(self):
-		self.code = self.code[:6]
-		if self.code[0] == '6':
-			tmp = self.code + '.SH'
-		elif self.code[:2] == '80':
-			tmp = self.code + '.SI'
-		else:
-			tmp = self.code + '.SZ'
-		return tmp
-
-	def map_other_code(self,diction):
-		return diction[self.code]
 
 
 class MyDate():
@@ -265,7 +319,7 @@ class MyWind():
 	def get_pct_change(self,start,end,idx):
 		wind_data = w.wsd(idx, "pct_chg", start, end, "")
 		dates = [pd.to_datetime(k.date()) for k in wind_data.Times]
-		pcts = [k/100 for k in wind_data.Data[0]]
+		pcts = [k / 100 for k in wind_data.Data[0]]
 		return dict(zip(dates, pcts))
 
 
@@ -280,60 +334,6 @@ class LazyProperty:
 			value = self.func(instance)
 			setattr(instance, self.func.__name__, value)
 			return value
-
-
-class Timer:
-	def __init__(self,func=time.clock):
-		self.elapsed = 0.0
-		self._func = func
-		self._start = None
-
-	def start(self):
-		if self._start is not None:
-			raise RuntimeError('Already started')
-		self._start = self._func()
-
-	def stop(self):
-		if self._start is None:
-			raise RuntimeError('Not Started')
-		end = self._func()
-		self.elapsed += end - self._start
-		self._start = None
-
-	def reset(self):
-		self.elapsed = 0.0
-
-	@property
-	def running(self):
-		return self._start is not None
-
-	def __enter__(self):
-		self.start()
-		return self
-
-	def __exit__(self,*args):
-		self.stop()
-
-	def trade_time_run(self,outside_func,*args):
-		tick_time = datetime.now().strftime('%H%M%S')
-		morning = (tick_time > '0913') & (tick_time < '1131')
-		noon = (tick_time > '1129') & (tick_time < '1258')
-		after = (tick_time > '1257') & (tick_time < '1502')
-		#############################################
-		outside_func(*args)
-		logging.info('--%s--'%tick_time)
-		sleep_time = 900 if noon else 120
-		time.sleep(sleep_time)
-		if not (morning or after or noon):
-			raise SystemExit('---Close Trading---')
-		return
-
-	def try_except_sleep(self,func,*args):
-		try:
-			return func(*args)
-		except:
-			time.sleep(10)
-			return self.try_except_sleep(self,func,*args)
 
 
 class ReturnSeries():
@@ -479,5 +479,4 @@ class ReturnSeries():
 		for col in ['IR','ret2mdd']:
 			df[col] = df[col].map(lambda k:round(k,2))
 		return df
-
 
