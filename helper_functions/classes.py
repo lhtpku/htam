@@ -335,6 +335,9 @@ class LazyProperty:
 			setattr(instance, self.func.__name__, value)
 			return value
 
+	def get_check(self):
+		pass
+
 
 class ReturnSeries():
 	def __init__(self,df):
