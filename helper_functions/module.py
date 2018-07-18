@@ -16,6 +16,7 @@ import tables
 from pandas import Series,DataFrame
 import pandas.tseries.offsets as offsets
 import statsmodels.api as sm
+import tensorflow as tf
 import MySQLdb,pymssql
 ################################
 import xlwt,xlrd,xlutils

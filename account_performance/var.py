@@ -1,7 +1,11 @@
 from ..base.cnst import *
-TodayStr     = '20180706'
+TimeTick = TimeNow()
+NowTick = TimeTick.get_now()
+###############
+TodayStr     = '20180713'
 YesterdayStr = all_jy_tradingday[all_jy_tradingday.index(TodayStr) - 1]
 print(TodayStr)
+#############################
 DATA_ROOT      = 'C:/Users/liuhongtao/Desktop/DailyHolding'
 DATA_ROOT_TODAY = os.path.join(DATA_ROOT, TodayStr)
 DATA_ROOT_YESTERDAY = os.path.join(DATA_ROOT, YesterdayStr)
@@ -130,6 +134,7 @@ class DataFromWind(BasicPara):
 		tmp_all = []
 		for i,path_list in enumerate(self.all_path):
 			df = self.path_df_concat(lambda path:pd.read_csv(path),path_list)#[['Strategy','Type','Symbol']]
+			df['Quantity'] = df['Quantity'].map(lambda num: eval(str(num).replace(',','')))
 			df = df[df['Quantity'] > 0]
 			df.to_csv(os.path.join(DATA_ROOT_TODAY,'stephen',self.path_name[i]), index=False)
 			tmp_all.append(df)
@@ -306,3 +311,14 @@ class SymbolPerformance(SymbolMapData):
 		df['epsilon_pnl'] = df['revenue']-df['delta_pnl']-df['gamma_pnl']-df['theta_pnl']-df['vega_pnl']
 		return df
 
+######################################
+def insert_history_value():
+	value_path = 'C:/Users/liuhongtao/Desktop/DailyHolding1/value'
+	path_lists = MyDir(value_path).whole_file_path('.xlsx')[-1:]
+	for path in path_lists:
+		print(path)
+		df = pd.read_excel(path).rename(columns={'TradeDate':'TradingDay'})
+		df['TradingDay'] = df['TradingDay'].map(lambda k:pd.to_datetime(str(int(k))))
+		df.insert(len(df.columns),'CreateDate',NowTick)
+		connOF.delete_insert(df,'net_value_real',['TradingDay'])
+	return
