@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<script src="jQuery.js"></script>
+	<script type="text/javascript" src= 'test.js'></script>
+	<script type="text/javascript" src= 'highcharts.js'></script>
+	<title>账户分析</title>
+</head>
+
+<body>
+<div id="total" style = 'color:red'></div>
+
+<div id="main_button">
+	<button type="button" onclick="ACCOUNT.request_table('account_general')">账户概览</button>
+	<button type="button" onclick="ACCOUNT.show('account_value')">账户净值</button>
+	<button type="button" onclick="ACCOUNT.show('account_attribution')">业绩归因</button>
+	<button type="button" onclick="ACCOUNT.show('account_position')">仓位结构</button>
+	<button type="button" onclick="ACCOUNT.show('account_risk')">风险分析</button>
+	<button type="button" onclick="ACCOUNT.show('account_strategy')">策略实盘</button>
+	<button type="button" onclick="ACCOUNT.show('account_futures')">期货持仓</button>
+	<button type="button" onclick="ACCOUNT.show('account_new_stock')">新股分析</button>
+	<button type="button" onclick="ACCOUNT.show('account_holding')">持仓明细</button>
+	<button type="button" onclick="ACCOUNT.show('account_trading')">交易明细</button>
+	<hr>
+</div>
+
+<div id="para_select">
+	<span id = "account_select">账户: <select id="use_account"></select></span>
+	<span id = "date_select">日期: <input type="date" id="use_date"></span>
+	<span id = "strategy_select">策略: <input type="text" id="use_strategy"></span>
+</div>
+
+<div id="sub_button">
+	<div id="account_value">
+		<button type="button" onclick="ACCOUNT.request_table('value_20')">近20日表现</button>
+		<button type="button" onclick="ACCOUNT.request_table('value_year')">今年以来</button>
+		<button type="button" onclick="ACCOUNT.request_table('value_birth')">成立以来</button>
+		<button type="button" onclick="ACCOUNT.request_table('value_month')">月度业绩</button>
+	</div>
+	<div id="account_attribution">
+		<button type="button" onclick="ACCOUNT.request_table('attribution_day')">日度业绩归因</button>
+		<button type="button" onclick="ACCOUNT.request_table('attribution_month')">月度业绩归因</button>
+		<button type="button" onclick="ACCOUNT.request_table('attribution_acc')">累计业绩归因</button>
+	</div>
+	<div id="account_position">
+		<button type="button" onclick="ACCOUNT.request_table('position_strategy')">策略头寸</button>
+		<button type="button" onclick="ACCOUNT.request_table('position_capital')">资金头寸</button>
+	</div>
+	<div id="account_risk">
+		<button type="button" onclick="ACCOUNT.request_table('risk_exposure')">净曝露</button>
+		<button type="button" onclick="ACCOUNT.request_table('risk_match')">期限匹配</button>
+	</div>
+	<div id="account_strategy">
+		<button type="button" onclick="ACCOUNT.request_table('strategy_alpha')">Alpha策略</button>
+		<button type="button" onclick="ACCOUNT.request_table('strategy_long')">多头策略</button>
+	</div>
+	<div id="account_futures">
+		<button type="button" onclick="ACCOUNT.request_table('futures_holding')">期货持仓</button>
+		<button type="button" onclick="ACCOUNT.request_table('futures_uplimit')">期货上限</button>
+	</div>
+	<div id="account_new_stock">
+		<button type="button" onclick="ACCOUNT.request_table('new_stock_date')">市值by日期</button>
+		<button type="button" onclick="ACCOUNT.request_table('new_stock_account')">市值by账户</button>
+		<button type="button" onclick="ACCOUNT.request_table('new_stock_revenue')">新股收益(月)</button>
+	</div>
+	<div id="account_holding">
+		<button type="button" onclick="ACCOUNT.request_table('holding')">查询</button>
+	</div>
+	<div id="account_trading">
+		<button type="button" onclick="ACCOUNT.request_table('trading')">查询</button>
+	</div>
+	<br>
+</div>
+
+<div id="display">
+	<table id="display_table" border = "1" cellspacing="0"></table>
+	<br><br>
+	<div id='graph'></div>
+</div>
+
+</body>
+</html>
