@@ -2,7 +2,7 @@ from ..base.cnst import *
 TimeTick = TimeNow()
 NowTick = TimeTick.get_now()
 ###############
-TodayStr     = '20180713'
+TodayStr     = '20180709'
 YesterdayStr = all_jy_tradingday[all_jy_tradingday.index(TodayStr) - 1]
 print(TodayStr)
 #############################
@@ -40,6 +40,8 @@ class BasicPara():
 		self.ACCOUNT_PARA['share'] = dict(zip(net_value['PortfolioID'],net_value['Share']))
 
 	def new_net_value_insert(self):
+		tmp_max_day = connOF.read('max(TradingDay)','net_value_real','').iloc[0,0].strftime('%Y%m%d')
+		#################################
 		cols = ['PortfolioID','value','asset','share']
 		dicts = [self.ACCOUNT_PARA['net_value_1'],self.ACCOUNT_PARA['net_asset_1'],self.ACCOUNT_PARA['share']]
 		df = DataFrame(dict(zip(cols[1:],dicts))).reset_index().rename(columns={'index':cols[0]})[cols]
@@ -115,8 +117,10 @@ class DataFromWind(BasicPara):
 		self.all_path = [self.holding_0_path, self.holding_1_path, self.trading_path]
 		############################
 		stephen_path = os.path.join(DATA_ROOT_TODAY, 'stephen')
-		if not os.path.exists(stephen_path):
-			os.mkdir(stephen_path)
+		if os.path.exists(stephen_path):
+			shutil.rmtree(stephen_path)
+		# if not os.path.exists(stephen_path):
+		os.mkdir(stephen_path)
 
 	def path_df_concat(self,func,path_list):
 		df_list = map(func,path_list)
@@ -153,7 +157,7 @@ class DataFromWind(BasicPara):
 		self.all_symbol[3] = self.get_fut_code()
 		##########################
 		stk_index  = ["close"]
-		bond_index = "dirtyprice,cleanprice,accruedinterest,durationifexercise".split(',')
+		bond_index = "dirtyprice,cleanprice,accruedinterest,accrueddays,durationifexercise".split(',')
 		cb_index   = ["close"]
 		fut_index  = ['trade_hiscode','settle']
 		op_index   = "close,delta,gamma,vega,theta,rho,us_impliedvol,us_change".split(',')
@@ -199,7 +203,7 @@ class SymbolMapData(DataFromWind):
 
 	def map_all_data(self):
 		self.holding_0,self.holding_1,self.trading = self.get_holding_trading_data()
-		self.get_close_0()
+		self.get_close_0(self.holding_0)
 		self.get_other_para()
 
 	def get_holding_trading_data(self):
@@ -209,18 +213,19 @@ class SymbolMapData(DataFromWind):
 		df_list   = [self.get_close_1(df) for df in df_list]
 		return df_list
 
-	def get_close_0(self):
-		self.holding_0['close_0'] = self.holding_0['Symbol'].map(self.json_data_0['close'])
+	def get_close_0(self,df):
+		df['close_0'] = df['Symbol'].map(self.json_data_0['close'])
 		### 
-		self.holding_0.loc[self.holding_0['Type'].isin(['RREPO','MF']),'close_0'] = 100
+		df.loc[df['Type'].isin(['RREPO','MF']),'close_0'] = 100
 		### 
-		self.holding_0.loc[self.holding_0['Type']=='BOND','close_0'] = self.holding_0['Symbol'].map(self.json_data_0['dirtyprice'])
+		df.loc[df['Type']=='BOND','close_0'] = df['Symbol'].map(self.json_data_0['dirtyprice'])
 		### 
-		self.holding_0.loc[np.isnan(self.holding_0['close_0'])&(self.holding_0['Type']=='STOCK'),'close_0'] = 0.694*self.holding_0['close_1']
+		df.loc[np.isnan(df['close_0'])&(df['Type']=='STOCK'),'close_0'] = 0.694*df['close_1']
 		###
-		self.holding_0['is_out'] = self.holding_0['Type'].isin(['OP','FUT']) & np.isnan(self.holding_0['close_1'])
-		self.holding_0 = self.holding_0.query("is_out == 0")
-		del self.holding_0['is_out']
+		df['is_out'] = df['Type'].isin(['OP','FUT']) & np.isnan(df['close_1'])
+		df = df.query("is_out == 0")
+		del df['is_out']
+		return df
 
 	def get_other_para(self):
 		for i,cate in enumerate(self.all_symbol_cate):
@@ -229,6 +234,10 @@ class SymbolMapData(DataFromWind):
 					col = col.lower()
 					self.holding_0['%s_0'%col] = self.holding_0['Symbol'].map(self.json_data_0[col])
 					self.holding_0['%s_1'%col] = self.holding_0['Symbol'].map(self.json_data_1[col])
+				##############################
+				tmp_condi = self.holding_0['accrueddays_0']>self.holding_0['accrueddays_1']
+				self.holding_0.loc[tmp_condi,'accruedinterest_1'] += self.holding_0['accruedinterest_0']
+				self.holding_0.loc[tmp_condi,'close_1'] += self.holding_0['accruedinterest_0'] 
 			elif cate == 'OP':
 				for col in self.all_symbol_index[i][1:]:
 					col = col.lower()
@@ -262,14 +271,14 @@ class SymbolMapData(DataFromWind):
 		###
 		if 'FilledPrice' in df.columns:
 			df.loc[df['Type'].isin(['RREPO','MF']),'FilledPrice'] = 100
-			df.loc[df['Type'] == 'BOND','close_1'] = df['Symbol'].map(self.json_data_1['cleanprice'])
+			df.loc[df['Type']=='BOND','close_1'] = df['Symbol'].map(self.json_data_1['cleanprice'])
 		else:
-			df.loc[df['Type'] == 'BOND','close_1'] = df['Symbol'].map(self.json_data_1['dirtyprice'])
+			df.loc[df['Type']=='BOND','close_1'] = df['Symbol'].map(self.json_data_1['dirtyprice'])
 		return df
 
 	def add_multiplier(self,df):
 		df['multiplier'] = 0
-		df.loc[df['Type'] == 'OP','multiplier'] = 10000
+		df.loc[df['Type']=='OP','multiplier'] = 10000
 		df['multiplier'] += df['Symbol'].map(lambda k:k.startswith('IH')) * 300
 		df['multiplier'] += df['Symbol'].map(lambda k:k.startswith('IF')) * 300
 		df['multiplier'] += df['Symbol'].map(lambda k:k.startswith('IC')) * 200

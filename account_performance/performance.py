@@ -122,7 +122,6 @@ class Performance(SymbolPerformance):
 		len_1 = len(holding_df); len_2 = len(trading_df)
 		trading_pnl = trading_df.groupby(self.group_col).apply(lambda k:StrategyAttribution(k).pnl())
 		trading_pnl = trading_pnl.reset_index().rename(columns={0:'trading_pnl'})
-		###############################
 		if len_1 == len_2 == 0:
 			return DataFrame()
 		elif len_2 == 0:
@@ -301,3 +300,4 @@ class StockExposure():
 		temp1 = set(all_code + self.index_code('1800'))
 		temp2 = set(self.index_code('300') + self.index_code('500'))
 		return list(temp1 - temp2)
+
