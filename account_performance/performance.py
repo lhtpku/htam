@@ -3,6 +3,9 @@ from .var import *
 class Performance(SymbolPerformance):
 	def __init__(self):
 		super().__init__()
+		self.performance_main()
+
+	def performance_main(self):
 		self.net_asset_update()
 		self.position_ratio()
 		self.stra_account_performance()
@@ -58,6 +61,7 @@ class Performance(SymbolPerformance):
 		#####################
 		account_attribution = self.columns_in_right_order(account_attribution, self.attri_col)
 		connOF.delete_insert(self.df_standard(account_attribution),'daily_attribution',['TradingDay'])
+		logging.info('updating account & strategy performance in %s is ok.' %TodayStr)
 
 	def stock_exposure(self):
 		df = StockExposure(self.holding_1).exposure_df
