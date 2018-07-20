@@ -97,7 +97,6 @@ class StrategyClear(BasicPara):
 		df = pd.merge(self.today_performance,df,on=['PortfolioID','Strategy'],how='left')
 		df = df[self.group_col+['Weight','Bias','pnl','pnl_5','pnl_10','pnl_99']]
 		connOF.delete_insert(self.df_standard(df),'daily_strategy_performance',['TradingDay'])
-		return
 
 	def base_data(self):
 		self.group_col = ['PortfolioID','Strategy']

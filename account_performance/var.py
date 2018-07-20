@@ -2,7 +2,7 @@ from ..base.cnst import *
 TimeTick = TimeNow()
 NowTick = TimeTick.get_now()
 ###############
-TodayStr     = '20180709'
+TodayStr     = '20180720'
 YesterdayStr = all_jy_tradingday[all_jy_tradingday.index(TodayStr) - 1]
 print(TodayStr)
 #############################
@@ -18,7 +18,7 @@ class BasicPara():
 	def main_run(self):
 		self.get_net_value()
 		self.all_col_by_order()
-		self.alpha_para()
+		# self.alpha_para()
 		self.get_stra_type()
 
 	def df_standard(self,df):
@@ -117,10 +117,10 @@ class DataFromWind(BasicPara):
 		self.all_path = [self.holding_0_path, self.holding_1_path, self.trading_path]
 		############################
 		stephen_path = os.path.join(DATA_ROOT_TODAY, 'stephen')
-		if os.path.exists(stephen_path):
-			shutil.rmtree(stephen_path)
-		# if not os.path.exists(stephen_path):
-		os.mkdir(stephen_path)
+		# if os.path.exists(stephen_path):
+		# 	shutil.rmtree(stephen_path)
+		if not os.path.exists(stephen_path):
+			os.mkdir(stephen_path)
 
 	def path_df_concat(self,func,path_list):
 		df_list = map(func,path_list)
@@ -245,6 +245,7 @@ class SymbolMapData(DataFromWind):
 						self.holding_0[col] = self.holding_0['Symbol'].map(self.json_data_1[col])
 					elif col == 'us_impliedvol':
 						tmp1,tmp2 = self.holding_0['Symbol'].map(self.json_data_1[col]), self.holding_0['Symbol'].map(self.json_data_0[col])
+						# print(self.json_data_1[col])
 						self.holding_0['iv'] = 100 * (tmp1 - tmp2)
 					else:
 						self.holding_0[col] = self.holding_0['Symbol'].map(self.json_data_0[col])
@@ -274,6 +275,8 @@ class SymbolMapData(DataFromWind):
 			df.loc[df['Type']=='BOND','close_1'] = df['Symbol'].map(self.json_data_1['cleanprice'])
 		else:
 			df.loc[df['Type']=='BOND','close_1'] = df['Symbol'].map(self.json_data_1['dirtyprice'])
+			############ for volume
+			df.loc[df['Type']=='BOND','cleanprice'] = df['Symbol'].map(self.json_data_1['cleanprice'])
 		return df
 
 	def add_multiplier(self,df):
@@ -296,8 +299,12 @@ class SymbolPerformance(SymbolMapData):
 		self.holding_0 = self.option_para(self.holding_0)
 
 	def common_para(self):
-		self.holding_1['volume']  = self.holding_1['close_1'] * self.holding_1['Quantity'] * self.holding_1['multiplier']
+		# tmp_condi = self.holding_1['Type'] == 'BOND'
+		tmp_col = self.holding_1['close_1']#*(not tmp_condi) + self.holding_1['cleanprice']*(tmp_condi)
+		self.holding_1['volume']  = tmp_col * self.holding_1['Quantity'] * self.holding_1['multiplier']
+		####################
 		self.holding_0['volume']  = self.holding_0['close_0'] * self.holding_0['Quantity'] * self.holding_0['multiplier']
+		##################
 		self.holding_0['revenue'] = self.holding_0['Quantity'] * self.holding_0['multiplier'] * self.holding_0['Side']*\
 									(self.holding_0['close_1'] - self.holding_0['close_0'])
 		self.trading['revenue']   = self.trading['Quantity'] * self.trading['multiplier'] * self.trading['Side'] *\

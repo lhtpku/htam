@@ -32,7 +32,9 @@ class Performance(SymbolPerformance):
 			
 	def position_ratio(self):
 		for ratio_type in ['Type','stra_type']:
-			ratio = self.holding_1.groupby(['PortfolioID',ratio_type])[['volume']].sum().reset_index()
+			# ratio = self.holding_1.groupby(['PortfolioID',ratio_type])[['volume']].sum().reset_index()
+			ratio = self.holding_1.groupby(['PortfolioID',ratio_type]).apply(lambda k:StrategyAttribution(k).position).reset_index()
+			_ = ratio.rename(columns={0:'volume'}, inplace=True)
 			ratio = self.common_ratio_process(ratio)
 			table = 'secu_ratio' if ratio_type == 'Type' else 'strategy_ratio'
 			connOF.delete_insert(self.df_standard(ratio),table,['TradingDay'])
@@ -42,7 +44,7 @@ class Performance(SymbolPerformance):
 		del df['volume']
 		other = (1 - df.groupby('PortfolioID')[['ratio']].sum()).reset_index()
 		other.insert(1,df.columns[1],'OTHER')
-		df = pd.concat([df,other],ignore_index=True)
+		df = pd.concat([df,other], ignore_index=True)
 		return df
 
 	def stra_account_performance(self):
@@ -204,6 +206,8 @@ class StrategyAttribution(BasicPara):
 	def option_detail(self):
 		result = self.common_detail()
 		result['other_pnl'] = result['holding_pnl'] - self.specific_pnl('OP')
+		# print(result['holding_pnl'],self.specific_pnl('OP'))
+		# print(self.df[self.op_col+['iv']])
 		for col in self.op_col:
 			result[col] = self.df[col].sum() / self.asset
 		return Series(result)
@@ -229,6 +233,7 @@ class StrategyAttribution(BasicPara):
 		return [k/self.position for k in [alpha,exposuree,basis]]
 
 	def index_tmp_pnl(self):
+		self.alpha_para()
 		index_pct = self.bench_pct[self.df['stra_type'].tolist()[0]]
 		tmp_1     = self.long_position() * index_pct
 		tmp_2     = self.short_position() * index_pct
@@ -279,7 +284,7 @@ class StockExposure():
 	def exposure(self,df):
 		result = dict()
 		stock50,stock300,stock500,stock1000 = map(lambda code:self.sum(df[df['Symbol'].isin(code)]),self.index_component)
-		stock9999 = self.sum(df[~df['Symbol'].isin(self.stock9999)])
+		stock9999 = self.sum(df[(~df['Symbol'].isin(self.stock9999)) & (df['Type'] == 'STOCK')])
 
 		short50,short300,short500 = map(lambda fut:self.sum(df[(df['fut_type']==fut)&(df['Side']==-1)]), ['IH','IF','IC'])
 		long50, long300,  long500 = map(lambda fut:self.sum(df[(df['fut_type']==fut)&(df['Side']== 1)]), ['IH','IF','IC'])
