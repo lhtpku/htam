@@ -123,25 +123,25 @@ var TABLE = {
 	},
 
 	holding: function(sql_data,table_id) {
-		var col_name = ['日期','代码','简称','持仓','持仓方向','最新价格','市值'];
-		var data_col = ['TradingDay','Code','ChiName','Quantity','Direction','Price1','Volume'];
+		var col_name = ['日期','代码','持仓','持仓方向','最新价格','市值'];
+		var data_col = ['TradingDay','Code','Quantity','Direction','Price1','Volume'];
 		var display_format = LAYOUT.update_format(col_name,{0:DATA_TYPE.to_date_str,
-															3:DATA_TYPE.to_thousand,
-															5:DATA_TYPE.to_num2,
-															6:DATA_TYPE.to_thousand},DATA_TYPE.raw);
-		var align_direction = LAYOUT.update_format(col_name,{0:'center',1:'center'},'right');
+															2:DATA_TYPE.to_thousand,
+															4:DATA_TYPE.to_num2,
+															5:DATA_TYPE.to_thousand},DATA_TYPE.raw);
+		var align_direction = LAYOUT.update_format(col_name,{0:'center',1:'left'},'right');
 		var html = GENERATE_TABLE(col_name,data_col,sql_data,display_format,align_direction);
 		this.table_reset(html,table_id);
 	},
 
 	trading: function(sql_data,table_id) {
-		var col_name = ['日期','代码','简称','交易量','交易方向','交易价格','收盘价'];
-		var data_col = ['TradingDay','Code','ChiName','Quantity','Direction','FilledPrice','Price1'];
+		var col_name = ['日期','代码','交易量','交易方向','交易价格','收盘价'];
+		var data_col = ['TradingDay','Code','Quantity','Direction','FilledPrice','Price1'];
 		var display_format = LAYOUT.update_format(col_name,{0:DATA_TYPE.to_date_str,
-															3:DATA_TYPE.to_thousand,
-															5:DATA_TYPE.to_num2,
-															6:DATA_TYPE.to_num2},DATA_TYPE.raw);
-		var align_direction = LAYOUT.update_format(col_name,{0:'center',1:'center'},'right');
+															2:DATA_TYPE.to_thousand,
+															4:DATA_TYPE.to_num2,
+															5:DATA_TYPE.to_num2},DATA_TYPE.raw);
+		var align_direction = LAYOUT.update_format(col_name,{0:'center',1:'left'},'right');
 		var html = GENERATE_TABLE(col_name,data_col,sql_data,display_format,align_direction);
 		this.table_reset(html,table_id);
 	},
@@ -228,15 +228,68 @@ var TABLE = {
 		$(table_id).highcharts(json);
 	},
 
-	attribution_plot: function(sql_data,table_id,graph_title) {
-		var use_date = ['Alpha','敞口','基差','交易','可转债','门票','新股','债券','择时','多头','碎股']
-		var key_col = ['Alpha','Exposure','Basis','Trading','StructA','Ticket','New','Bond','Timing','OtherLong','Mini'];
+	attribution_other_pnl: function(tmp,key_col, use_data) {
+			var entire_col = ['new',
+							 'specu',
+							 'cvbond',
+							 'cta',
+							 'suspend',
+							 'alpha',
+							 'exposure',
+							 'basis',
+							 'delta',
+							 'gamma',
+							 'vega',
+							 'theta',
+							 'epsilon',
+							 'clean',
+							 'interest',
+							 'trading',
+							 'other'];
+			var other_pnl = 0;
+			for (var key of entire_col) {
+				if (key_col.indexOf(key) === -1) {
+					other_pnl = other_pnl + tmp[key];
+				}
+			}
+			use_data.push(other_pnl);
+			return use_data;
+
+	},
+
+
+	attribution_plot: function(sql_data,table_id,graph_title,portfolio_type) {
+		var tmp = sql_data[0];
 		var use_data = [];
-		for (var key of key_col){
-			use_data.push(sql_data[0][key]);
+		//////////////////////////////////
+		if (portfolio_type === 'Option') {
+			var use_chi = ['delta','gamma','vega','theta','epsilon','交易择时','未被解释','可转债','择时','CTA','停牌','新股','其他项'];
+			var key_col = ['delta','gamma','vega','theta','epsilon','trading','other','cvbond','specu','cta','suspend','new'];
+
+		} else if (portfolio_type === 'Bond') {
+			var use_chi = ['净价损益','利息损益','交易择时','未被解释','可转债','择时','CTA','停牌','新股','其他项'];
+			var key_col = ['clean','interest','trading','other','cvbond','specu','cta','suspend','new'];
+
+		} else if (portfolio_type === 'Hedge') {
+			var use_chi = ['Alpha','敞口','基差','交易择时','未被解释','可转债','择时','CTA','停牌','新股','其他项'];
+			var key_col = ['alpha','exposure','basis','trading','other','cvbond','specu','cta','suspend','new'];
+
+		} else if (portfolio_type === 'Mix') {
+			var use_chi = ['Alpha','敞口','基差','交易择时','净价损益','利息损益','delta','gamma','vega','theta','epsilon','未被解释','其他项'];
+			var key_col = ['alpha','exposure','basis','trading','clean','interest','delta','gamma','vega','theta','epsilon','other'];
+
+		} else {
+			alert('this portfolio type is wrong.');
+
 		}
+		///////////////////////////////////
+		for (var key of key_col) {
+				use_data.push(tmp[key]);
+			}
+		use_data = this.attribution_other_pnl(tmp,key_col, use_data);
+		//////////////////////////////////////
 		var json = {};
-		json.xAxis = {categories:use_date,labels:{rotation:-45},title:{text:""}};
+		json.xAxis = {categories:use_chi,labels:{rotation:-45},title:{text:""}};
 		json.yAxis = {labels:{formatter: function() { return DATA_TYPE.to_percent(this.value)}},title:{text:""}}
 		json.series = [{showInLegend:false, data:use_data,dataLabels:{enabled:true,formatter: function(){
 			return DATA_TYPE.to_percent(this.y);
@@ -467,6 +520,7 @@ var TABLE = {
 	},
 
 	futures_holding: function(sql_data,table_id) {
+		// console.log(sql_data)
 		var row_col = 'AccountName';
 		var col_col = 'Code';
 		var display_col = 'Quantity';
@@ -495,12 +549,11 @@ var TABLE = {
 	},
 
 	strategy_alpha: function(sql_data,table_id) {
-		var col_name = ['账户','策略','权重','曝露','偏离度','账户贡献','当日Alpha','近5日Alpha','近10日Alpha','今年以来Alpha'];
-		var data_col = ['AccountName','Strategy','Weight','Exposure','Bias','Contribution','AlphaRatio','AlphaRatio5','AlphaRatio10','AlphaRatio01'];
+		var col_name = ['账户','策略','权重','偏离度','当日账户贡献','近5日贡献','近10日贡献','累计贡献'];
+		var data_col = ['AccountName','Strategy','Weight','Bias','Contribution','Contribution5','Contribution10','Contribution01'];
 		var display_format = LAYOUT.update_format(col_name,{0:DATA_TYPE.raw,
 															1:DATA_TYPE.raw,
-															4:DATA_TYPE.raw,
-															5:DATA_TYPE.to_num1},DATA_TYPE.to_percent);
+															3:DATA_TYPE.raw},DATA_TYPE.to_percent);
 		var align_direction = LAYOUT.update_format(col_name,{0:'center',1:'left'},'right');
 		var html = GENERATE_TABLE(col_name,data_col,sql_data,display_format,align_direction);
 		this.table_reset(html,table_id);
@@ -540,22 +593,29 @@ var TABLE = {
 	},
 
 	position_strategy: function(sql_data,table_id) {
-		var col_name = ['账户名称','Alpha','多头','Alpha 50','Alpha 300','Alpha 500','门票','分级 A','新股','债券','碎股','择时','其他多头'];
-		var data_col = ['AccountName','Alpha','Speculation','Alpha50','Alpha300','Alpha500','Ticket','StructA','New','Bond','Mini','Timing','OtherLong'];
-		var display_format = LAYOUT.update_format(col_name,{0:DATA_TYPE.raw,},DATA_TYPE.to_percent);
-		var align_direction = LAYOUT.update_format(col_name,{0:'center'},'right');
-		var html = GENERATE_TABLE(col_name,data_col,sql_data,display_format,align_direction);
+		// console.log(sql_data)
+		var row_col = 'AccountName';
+		var col_col = 'Secu';
+		var display_col = 'Ratio';
+		var col_order = ['AccountName','Alpha50','Alpha300','Alpha500','NewStock','Bond','CvBond','OP','MF','Suspend','OTHER']
+		var col_name = ['账户','Alpha50','Alpha300','Alpha500','新股','债券','可转债','期权','货基','停牌','轧差项']
+		var row_name = {};
+		var display_format = LAYOUT.update_format(col_order,{0:DATA_TYPE.raw},DATA_TYPE.to_percent);
+		var align_direction = LAYOUT.update_format(col_order,{0:'center'},'right');
+		var html = GENERATE_PIVOT_TABLE(sql_data,row_col,col_col,display_col,col_order,display_format,align_direction,col_name,row_name);
 		this.table_reset(html,table_id);
 	},
 
 	position_capital: function(sql_data,table_id) {
-		var col_name = ['账户名','账户规模','总 现金','总 保证金','已用 保证金','现金','回购','可用 保证金','可 容忍风险'];
-
-		var data_col = ['AccountName','Size','TotalCash','MarginTotal','MarginUsed','Cash','GC001','MarginAvailable','TolerableRisk'];
-		var display_format = LAYOUT.update_format(col_name,{0:DATA_TYPE.raw,
-															1:DATA_TYPE.to_num2},DATA_TYPE.to_percent);
-		var align_direction = LAYOUT.update_format(col_name,{0:'center'},'right');
-		var html = GENERATE_TABLE(col_name,data_col,sql_data,display_format,align_direction);
+		var row_col = 'AccountName';
+		var col_col = 'Secu';
+		var display_col = 'Ratio';
+		var col_order = ['AccountName','STOCK','BOND','CVBOND','FUT','OP','RREPO','OTHER']
+		var col_name = ['账户','股票','债券','可转债','期货','期权','货基','轧差项']
+		var row_name = {};
+		var display_format = LAYOUT.update_format(col_order,{0:DATA_TYPE.raw},DATA_TYPE.to_percent);
+		var align_direction = LAYOUT.update_format(col_order,{0:'center'},'right');
+		var html = GENERATE_PIVOT_TABLE(sql_data,row_col,col_col,display_col,col_order,display_format,align_direction,col_name,row_name);
 		this.table_reset(html,table_id);
 	},
 
@@ -1246,6 +1306,12 @@ var ACCOUNT = {
 		}
 	},
 
+	select_hide: function() {
+		for (var id of ['account_select','date_select','strategy_select']) {
+			$('#'+id).hide();
+		}
+	},
+
 	choice_show: function(array_show,table_id,show_id){
 		if (array_show.indexOf(table_id) !== -1) {
 			$(show_id).show();
@@ -1290,12 +1356,13 @@ var ACCOUNT = {
 		return JSON.stringify({account:all_para[0],date:all_para[1],strategy:all_para[2]});
 	},
 
-	request_table:function(url) {
+	request_table: function(url) {
 		$('#display_table').empty();
 		$('#graph').empty();
 		if (url === 'account_general') {
 			// $('#para_select').hide();
 			// $('#sub_button').hide();
+			this.initial_hide();
 			var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,{});
 			TABLE.account_general(sql_data,'#display_table');
 		} else if (url === 'holding') {
@@ -1354,6 +1421,7 @@ var ACCOUNT = {
 			var para = this.para_process([0,1]);
 			var portfolio_type = GLOBAL_ESSENTIAL.get_sql_data('portfolio_type',para)[0]['PortfolioType'];
 			var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,para);
+			// console.log(portfolio_type);
 			var graph_title = "";
 			if (url === 'attribution_day') {
 				graph_title = '当日业绩归因';

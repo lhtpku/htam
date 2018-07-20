@@ -19,7 +19,6 @@
 	<button type="button" onclick="ACCOUNT.show('account_risk')">风险分析</button>
 	<button type="button" onclick="ACCOUNT.show('account_strategy')">策略实盘</button>
 	<button type="button" onclick="ACCOUNT.show('account_futures')">期货持仓</button>
-	<button type="button" onclick="ACCOUNT.show('account_new_stock')">新股分析</button>
 	<button type="button" onclick="ACCOUNT.show('account_holding')">持仓明细</button>
 	<button type="button" onclick="ACCOUNT.show('account_trading')">交易明细</button>
 	<hr>
@@ -49,20 +48,12 @@
 	</div>
 	<div id="account_risk">
 		<button type="button" onclick="ACCOUNT.request_table('risk_exposure')">净曝露</button>
-		<button type="button" onclick="ACCOUNT.request_table('risk_match')">期限匹配</button>
 	</div>
 	<div id="account_strategy">
-		<button type="button" onclick="ACCOUNT.request_table('strategy_alpha')">Alpha策略</button>
-		<button type="button" onclick="ACCOUNT.request_table('strategy_long')">多头策略</button>
+		<button type="button" onclick="ACCOUNT.request_table('strategy_alpha')">策略</button>
 	</div>
 	<div id="account_futures">
 		<button type="button" onclick="ACCOUNT.request_table('futures_holding')">期货持仓</button>
-		<button type="button" onclick="ACCOUNT.request_table('futures_uplimit')">期货上限</button>
-	</div>
-	<div id="account_new_stock">
-		<button type="button" onclick="ACCOUNT.request_table('new_stock_date')">市值by日期</button>
-		<button type="button" onclick="ACCOUNT.request_table('new_stock_account')">市值by账户</button>
-		<button type="button" onclick="ACCOUNT.request_table('new_stock_revenue')">新股收益(月)</button>
 	</div>
 	<div id="account_holding">
 		<button type="button" onclick="ACCOUNT.request_table('holding')">查询</button>

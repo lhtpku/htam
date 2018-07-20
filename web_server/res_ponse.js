@@ -38,7 +38,7 @@ RESPONSE = {
 	},
 
 	restrict_strategy: function() {
-		return "('S0000')";
+		return "('S1501C','S1601A','S0300','S1104C')";
 	},
 
 	get_ip: function(res,ipInfo) {
@@ -246,7 +246,7 @@ RESPONSE = {
 
 	ams_sql: function(table,condition = '',order = '') {
 		if (table.indexOf('futures') !== -1) {
-			var sql = `SELECT a.*,b.PortfolioID,b.ChiName AccountName FROM ${table} a inner join portfolio b on a.Account = b.Account`
+			var sql = `SELECT a.*,b.ChiName AccountName FROM ${table} a inner join portfolio b on a.PortfolioID = b.PortfolioID`;
 		} else {
 			var sql = `SELECT a.*,b.ChiName AccountName FROM ${table} a inner join portfolio b on a.PortfolioID = b.PortfolioID`;
 			sql += ' and b.Deleted = 0';	
@@ -278,7 +278,7 @@ RESPONSE = {
 	strategy_alpha: function(res,data_ob) {
 		data_ob = JSON.parse(data_ob);
 		var condition = `a.TradingDay='${data_ob.date}' and a.Weight > 0.015`
-		var sql = this.ams_sql('daily_alpha_performance',condition,'b.PortfolioID,a.Strategy')
+		var sql = this.ams_sql('daily_strategy_performance',condition,'b.PortfolioID,a.Strategy')
 		GET_AMS_DATA(res,sql)
 	},
 
@@ -360,18 +360,19 @@ RESPONSE = {
 	position_strategy: function(res,data_ob) {
 		data_ob = JSON.parse(data_ob);
 		var condition = `a.TradingDay='${data_ob.date}'`
-		var sql = this.ams_sql('daily_strategy_position',condition,'b.PortfolioID');
+		var sql = this.ams_sql('strategy_ratio',condition,'b.PortfolioID');
 		GET_AMS_DATA(res,sql)
 	},
 
 	position_capital: function(res,data_ob) {
 		data_ob = JSON.parse(data_ob);
 		var condition = `a.TradingDay='${data_ob.date}'`
-		var sql = this.ams_sql('daily_capital_position',condition,'b.PortfolioID');
+		var sql = this.ams_sql('secu_ratio',condition,'b.PortfolioID');
 		GET_AMS_DATA(res,sql)
 	},
 
 	attribution_day: function(res,data_ob) {
+		// console.log(data_ob)
 		data_ob = JSON.parse(data_ob);
 		var condition = `a.TradingDay='${data_ob.date}' and b.ChiName = '${data_ob.account}'`
 		var sql = this.ams_sql('daily_attribution',condition,'');
