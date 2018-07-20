@@ -116,8 +116,8 @@ class Performance(SymbolPerformance):
 			sql = "stra_type == %r" %stra_type
 		elif isinstance(stra_type,list):
 			sql = "stra_type in ('%s')" %"','".join(stra_type)
-		holding_0 = self.holding_0.query(sql)
-		trading   = self.trading.query(sql)
+		holding_0 = self.holding_0.query(sql).fillna(0)
+		trading   = self.trading.query(sql).fillna(0)
 		return holding_0,trading
 
 	def common_performance(self,holding_df,trading_df,holding_pnl):
@@ -205,18 +205,18 @@ class StrategyAttribution(BasicPara):
 
 	def option_detail(self):
 		result = self.common_detail()
-		result['other_pnl'] = result['holding_pnl'] - self.specific_pnl('OP')
-		# print(result['holding_pnl'],self.specific_pnl('OP'))
-		# print(self.df[self.op_col+['iv']])
+		result['other_pnl'] = result['holding_pnl']# - self.specific_pnl('OP')
 		for col in self.op_col:
-			result[col] = self.df[col].sum() / self.asset
+			result[col] = self.sum(self.df,col) / self.asset
+			result['other_pnl'] -= result[col]
+		# print(result)
 		return Series(result)
 
 	def bond_detail(self):
 		result = self.common_detail()
 		result['other_pnl'] = result['holding_pnl'] - self.specific_pnl('BOND')
 		for col in self.bond_col:
-			result[col] = self.df[col].sum() / self.asset
+			result[col] = self.sum(self.df,col) / self.asset
 		return Series(result)
 
 	def alpha_detail(self):
