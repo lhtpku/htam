@@ -6,22 +6,22 @@ $(document).ready(function(){
 	// $("#double").hide();
 	// $("#multiple").hide();
 
-	for (var id of ['single','double','multiple']) {
-		$('#'+id).hide();
-		}
+	// for (var id of ['single','double','multiple']) {
+	// 	$('#'+id).hide();
+	// 	}
 
-	$("select").empty();
-	$("select").append(GLOBAL_ESSENTIAL.strategy_choice());
+	// $("select").empty();
+	// $("select").append(GLOBAL_ESSENTIAL.strategy_choice());
 
-	for (var id of ['use_account','strategy_in','strategy_pre','strategy_old','strategy_index']) {
-		$('#'+id).empty();
-	}
-	$("#strategy_in").append(GLOBAL_ESSENTIAL.strategy_choice('In'))
-	$("#strategy_pre").append(GLOBAL_ESSENTIAL.strategy_choice('Pre'))
-	$("#strategy_old").append(GLOBAL_ESSENTIAL.strategy_choice('Old'))
-	$("#strategy_index").append(GLOBAL_ESSENTIAL.strategy_choice('Index'))
+	// for (var id of ['use_account','strategy_in','strategy_pre','strategy_old','strategy_index']) {
+	// 	$('#'+id).empty();
+	// }
+	// $("#strategy_in").append(GLOBAL_ESSENTIAL.strategy_choice('In'))
+	// $("#strategy_pre").append(GLOBAL_ESSENTIAL.strategy_choice('Pre'))
+	// $("#strategy_old").append(GLOBAL_ESSENTIAL.strategy_choice('Old'))
+	// $("#strategy_index").append(GLOBAL_ESSENTIAL.strategy_choice('Index'))
 
-	GLOBAL_ESSENTIAL.show_multi_table('#multi_table_in');
+	// GLOBAL_ESSENTIAL.show_multi_table('#multi_table_in');
 
 	// $("#use_account").empty();
 	$("#use_account").append(GLOBAL_ESSENTIAL.account_choice());
@@ -228,24 +228,7 @@ var TABLE = {
 		$(table_id).highcharts(json);
 	},
 
-	attribution_other_pnl: function(tmp,key_col, use_data) {
-			var entire_col = ['new',
-							 'specu',
-							 'cvbond',
-							 'cta',
-							 'suspend',
-							 'alpha',
-							 'exposure',
-							 'basis',
-							 'delta',
-							 'gamma',
-							 'vega',
-							 'theta',
-							 'epsilon',
-							 'clean',
-							 'interest',
-							 'trading',
-							 'other'];
+	attribution_other_pnl: function(tmp, key_col, use_data, entire_col) {
 			var other_pnl = 0;
 			for (var key of entire_col) {
 				if (key_col.indexOf(key) === -1) {
@@ -258,35 +241,75 @@ var TABLE = {
 	},
 
 
-	attribution_plot: function(sql_data,table_id,graph_title,portfolio_type) {
-		var tmp = sql_data[0];
+	attribution_plot: function(sql_data,table_id,graph_title,portfolio_type,is_interval=0) {
 		var use_data = [];
 		//////////////////////////////////
+		var entire_col = ['new',
+						 'specu',
+						 'cvbond',
+						 'cta',
+						 'suspend',
+						 'alpha',
+						 'exposure',
+						 'basis',
+						 'delta',
+						 'gamma',
+						 'vega',
+						 'theta',
+						 'epsilon',
+						 'clean',
+						 'interest',
+						 'trading',
+						 'other',
+						 'gap'];
+		//////////////////////////////////
 		if (portfolio_type === 'Option') {
-			var use_chi = ['delta','gamma','vega','theta','epsilon','交易择时','未被解释','可转债','择时','CTA','停牌','新股','其他项'];
-			var key_col = ['delta','gamma','vega','theta','epsilon','trading','other','cvbond','specu','cta','suspend','new'];
+			var use_chi = ['delta','gamma','vega','theta','epsilon','交易择时','未被解释','可转债','择时','CTA','停牌','新股','轧差项','其他项'];
+			var key_col = ['delta','gamma','vega','theta','epsilon','trading','other','cvbond','specu','cta','suspend','new','gap'];
 
 		} else if (portfolio_type === 'Bond') {
-			var use_chi = ['净价损益','利息损益','交易择时','未被解释','可转债','择时','CTA','停牌','新股','其他项'];
-			var key_col = ['clean','interest','trading','other','cvbond','specu','cta','suspend','new'];
+			var use_chi = ['净价损益','利息损益','交易择时','可转债','择时','CTA','停牌','新股','轧差项','其他项'];
+			var key_col = ['clean','interest','trading','cvbond','specu','cta','suspend','new','gap'];
 
 		} else if (portfolio_type === 'Hedge') {
-			var use_chi = ['Alpha','敞口','基差','交易择时','未被解释','可转债','择时','CTA','停牌','新股','其他项'];
-			var key_col = ['alpha','exposure','basis','trading','other','cvbond','specu','cta','suspend','new'];
+			var use_chi = ['Alpha','敞口','基差','交易择时','可转债','择时','CTA','停牌','新股','净价损益','利息损益','轧差项','其他项'];
+			var key_col = ['alpha','exposure','basis','trading','cvbond','specu','cta','suspend','new','clean','interest','gap'];
 
 		} else if (portfolio_type === 'Mix') {
-			var use_chi = ['Alpha','敞口','基差','交易择时','净价损益','利息损益','delta','gamma','vega','theta','epsilon','未被解释','其他项'];
-			var key_col = ['alpha','exposure','basis','trading','clean','interest','delta','gamma','vega','theta','epsilon','other'];
+			var use_chi = ['Alpha','敞口','基差','交易择时','净价损益','利息损益','delta','gamma','vega','theta','epsilon','轧差项','其他项'];
+			var key_col = ['alpha','exposure','basis','trading','clean','interest','delta','gamma','vega','theta','epsilon','gap'];
 
 		} else {
 			alert('this portfolio type is wrong.');
 
 		}
+		console.log(sql_data)
+		if (sql_data.length === 1) {
+			var tmp = sql_data[0];	
+		} else {
+			// console.log(sql_data)
+			// console.log(is_interval)
+			var tmp = {};
+			var xxxx = 0;
+			for (var key of entire_col) {
+				tmp[key] = 0;
+				for (var i=0; i<sql_data.length; i++) {
+					tmp[key] += sql_data[i][key];
+				}
+				xxxx += tmp[key];
+			}
+			tmp['gap'] = is_interval - xxxx;
+			// var k = 0;
+			// for (var i in tmp) {
+			// 	k += tmp[i]
+			// }
+			// console.log(k)
+		}
 		///////////////////////////////////
 		for (var key of key_col) {
 				use_data.push(tmp[key]);
 			}
-		use_data = this.attribution_other_pnl(tmp,key_col, use_data);
+		use_data = this.attribution_other_pnl(tmp,key_col,use_data,entire_col);
 		//////////////////////////////////////
 		var json = {};
 		json.xAxis = {categories:use_chi,labels:{rotation:-45},title:{text:""}};
@@ -1091,10 +1114,8 @@ var GLOBAL_ESSENTIAL = {
 		$.ajax(setting);
 		if (typeof get_data === 'undefined') {
 			alert('未从数据库中得到数据.');
-			wrong;
 		} else if (get_data.length === 0) {
 			alert('数据为空');
-			wrong;
 		} else {
 			return get_data;
 		}
@@ -1296,7 +1317,7 @@ var MULTI_CALCU = {
 }
 
 var ACCOUNT = {
-	all_id: ['account_select','date_select','strategy_select',
+	all_id: ['account_select','date_select','strategy_select','date_start_select','date_end_select',
 			'account_value','account_attribution','account_position',
 			'account_risk','account_strategy','account_futures','account_new_stock','account_holding','account_trading'],
 
@@ -1307,7 +1328,7 @@ var ACCOUNT = {
 	},
 
 	select_hide: function() {
-		for (var id of ['account_select','date_select','strategy_select']) {
+		for (var id of ['account_select','date_select','strategy_select','date_start_select','date_end_select']) {
 			$('#'+id).hide();
 		}
 	},
@@ -1319,6 +1340,7 @@ var ACCOUNT = {
 	},
 
 	show: function(table_id) {
+		// console.log(table_id);
 		this.initial_hide();
 		$('#'+table_id).show();
 		$('#display_table').empty();
@@ -1332,6 +1354,12 @@ var ACCOUNT = {
 
 		var strategy_show = ['account_holding','account_trading'];
 		this.choice_show(strategy_show,table_id,"#strategy_select");
+
+		var date_interval_show1 = ['account_attribution'];
+		this.choice_show(date_interval_show1,table_id,"#date_start_select");
+
+		var date_interval_show2 = ['account_attribution'];
+		this.choice_show(date_interval_show2,table_id,"#date_end_select");
 	},
 
 	para_process: function(use_para) {
@@ -1341,19 +1369,25 @@ var ACCOUNT = {
 		all_para[0] = $('#use_account').val();
 		all_para[1] = $('#use_date').val() || DATA_TYPE.last_week_day();
 		all_para[2] = $('#use_strategy').val();
+		all_para[3] = $('#use_date_start').val();
+		all_para[4] = $('#use_date_end').val();
+		////////////////////////////////
 		for (var x of use_para) {
 			if ((all_para[x] === "") | (typeof all_para[x] === 'undefined')) {
 				if (x === 0) {
 					alert('账户不能为空');
 				} else if (x === 1) {
 					alert('日期不能为空');
-				} else {
+				} else if (x === 2){
 					alert('策略不能为空');
+				} else if (x >= 3) {
+					alert('起始结束日期均需填写');
+				} else {
+					alert('Unkown wrong');
 				}
-				wrong;	
-			} 
+			}
 		}
-		return JSON.stringify({account:all_para[0],date:all_para[1],strategy:all_para[2]});
+		return JSON.stringify({account:all_para[0], date:all_para[1], strategy:all_para[2], start_date:all_para[3], end_date:all_para[4]});
 	},
 
 	request_table: function(url) {
@@ -1417,20 +1451,41 @@ var ACCOUNT = {
 			var para = this.para_process([1]);
 			var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,para);
 			TABLE.position_capital(sql_data,'#display_table');
-		} else if (['attribution_day','attribution_month','attribution_acc'].indexOf(url) !== -1) {
+		} else if (['attribution_day','attribution_month','attribution_acc','attribution_interval'].indexOf(url) !== -1) {
 			var para = this.para_process([0,1]);
 			var portfolio_type = GLOBAL_ESSENTIAL.get_sql_data('portfolio_type',para)[0]['PortfolioType'];
-			var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,para);
-			// console.log(portfolio_type);
+			// 
 			var graph_title = "";
 			if (url === 'attribution_day') {
 				graph_title = '当日业绩归因';
 			} else if (url === 'attribution_month') {
 				graph_title = '当月业绩归因';
-			} else {
+			} else if (url === 'attribution_acc'){
 				graph_title = '累计业绩归因';
+			} else {
+				graph_title = '区间业绩归因'
 			}
-			TABLE.attribution_plot(sql_data,'#graph',graph_title, portfolio_type);
+			////////////////////////////////////
+			if (url !== 'attribution_interval') {
+				var para = this.para_process([0,1]);
+				var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,para);
+				console.log(para)
+				TABLE.attribution_plot(sql_data,'#graph',graph_title, portfolio_type);
+			} else {
+				var para = this.para_process([0,3,4]);
+				//////////////////////////////////
+				var sql_data_pct = GLOBAL_ESSENTIAL.get_sql_data('daily_pct',para);
+				var tmp_total_pct = 1;
+				for (var i=0; i<sql_data_pct.length; i++) {
+					tmp_total_pct *= (1+sql_data_pct[i]['PctChange']);
+				}
+				tmp_total_pct -= 1;
+				/////////////////////////////
+				var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,para);
+
+				TABLE.attribution_plot(sql_data,'#graph',graph_title, portfolio_type,tmp_total_pct)
+			}
+			
 		} else if (['value_year','value_birth'].indexOf(url) !== -1) {
 			var para = this.para_process([0]);
 			var sql_data = GLOBAL_ESSENTIAL.get_sql_data(url,para);

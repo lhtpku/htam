@@ -62,6 +62,7 @@ class Performance(SymbolPerformance):
 		connOF.delete_insert(self.df_standard(df),'strategy_performance',['TradingDay'])
 		#####################
 		account_attribution = self.columns_in_right_order(account_attribution, self.attri_col)
+		account_attribution.insert(len(account_attribution.columns),'gap',0)
 		connOF.delete_insert(self.df_standard(account_attribution),'daily_attribution',['TradingDay'])
 		logging.info('updating account & strategy performance in %s is ok.' %TodayStr)
 

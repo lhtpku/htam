@@ -28,6 +28,9 @@
 	<span id = "account_select">账户: <select id="use_account"></select></span>
 	<span id = "date_select">日期: <input type="date" id="use_date"></span>
 	<span id = "strategy_select">策略: <input type="text" id="use_strategy"></span>
+	<!--  -->
+	<span id = "date_start_select">起始日期: <input type="date" id="use_date_start"></span>
+	<span id = "date_end_select">结束日期: <input type="date" id="use_date_end"></span>
 </div>
 
 <div id="sub_button">
@@ -41,6 +44,7 @@
 		<button type="button" onclick="ACCOUNT.request_table('attribution_day')">日度业绩归因</button>
 		<button type="button" onclick="ACCOUNT.request_table('attribution_month')">月度业绩归因</button>
 		<button type="button" onclick="ACCOUNT.request_table('attribution_acc')">累计业绩归因</button>
+		<button id="account_attribution_interval"  type="button" onclick="ACCOUNT.request_table('attribution_interval')">区间业绩归因</button>
 	</div>
 	<div id="account_position">
 		<button type="button" onclick="ACCOUNT.request_table('position_strategy')">策略头寸</button>
@@ -63,6 +67,7 @@
 	</div>
 	<br>
 </div>
+
 
 <div id="display">
 	<table id="display_table" border = "1" cellspacing="0"></table>

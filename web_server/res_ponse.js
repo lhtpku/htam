@@ -13,7 +13,7 @@ var RESPONSE = {}
 RESPONSE = {
 	'': function (res,frontDataStrtgy) {
 		res.writeHead(200,{'Content-Type':'text/html;charset = utf-8'});
-		var streamfr = fs.createReadStream('strategy_analysis.html');
+		var streamfr = fs.createReadStream('account_analysis.html');
 		streamfr.on('error',function(err){
 			res.end("<h1> 404 error</h1>>");
 			console.log(err);
@@ -390,6 +390,20 @@ RESPONSE = {
 		data_ob = JSON.parse(data_ob);
 		var condition = `a.TradingDay='${data_ob.date}' and b.ChiName = '${data_ob.account}'`
 		var sql = this.ams_sql('acc_attribution',condition,'');
+		GET_AMS_DATA(res,sql)
+	},
+
+	attribution_interval: function(res,data_ob) {
+		data_ob = JSON.parse(data_ob);
+		var condition = `b.ChiName='${data_ob.account}' and a.TradingDay>='${data_ob.start_date}' and a.TradingDay<='${data_ob.end_date}'`
+		var sql = this.ams_sql('daily_attribution',condition,'');
+		GET_AMS_DATA(res,sql)
+	},
+
+	daily_pct: function(res,data_ob) {
+		data_ob = JSON.parse(data_ob);
+		var condition = `b.ChiName='${data_ob.account}' and a.TradingDay>='${data_ob.start_date}' and a.TradingDay<='${data_ob.end_date}'`
+		var sql = this.ams_sql('display_daily_netvalue',condition,'a.TradingDay');
 		GET_AMS_DATA(res,sql)
 	},
 

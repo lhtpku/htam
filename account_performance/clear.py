@@ -3,7 +3,6 @@ from .performance import *
 class ValueClear(BasicPara):
 	def __init__(self):
 		super().__init__()
-		self.display_netvalue()
 		
 	def get_daily_chg(self,df):
 		df['Pct'] = df['NetValue'].pct_change()
@@ -52,12 +51,15 @@ class ValueClear(BasicPara):
 		tmp_col = ['netvalue','daily','monthly','yearly','newest','annual','std','sharp_ratio','mdd']
 		account_general = account_general[tmp_col].reset_index()
 		connOF.delete_insert(self.df_standard(account_general),'account_general',[])
+		return monthly_netvalue,account_general
 
 
 class AttributionClear(BasicPara):
 	def __init__(self):
 		super().__init__()
 		self.whole = connOF.read('*','daily_attribution').set_index('TradingDay')
+		del self.whole['gap'];
+		self.month_ret, self.acc_ret = ValueClear().display_netvalue()
 		self.monthly_attribution()
 		self.sum_attribution()
 
@@ -72,6 +74,13 @@ class AttributionClear(BasicPara):
 
 	def monthly_attribution(self):
 		month = self.whole.groupby('PortfolioID').apply(lambda df:df.resample('M').sum())
+		##############################
+		xx = DataFrame(month.iloc[:,2:].sum(axis=1)).rename(columns={0:'gap'})
+		yy = self.month_ret[['TradingDay','PortfolioID','Pct']].set_index(['PortfolioID','TradingDay'])
+		xx = pd.merge(xx,yy,left_index=True,right_index=True,how='left')
+		xx['gap'] = xx['Pct'] - xx['gap']
+		del xx['Pct']
+		month = pd.merge(month,xx,left_index=True,right_index=True,how='left')
 		month = month.reset_index('TradingDay')
 		#############
 		from pandas.tseries.offsets import MonthEnd
@@ -83,7 +92,12 @@ class AttributionClear(BasicPara):
 
 	def sum_attribution(self):
 		whole_ = self.whole.groupby('PortfolioID').sum()
+		theory_value = dict(whole_.iloc[:,1:].sum(axis=1))
+		#######################
+		real_value = dict(zip(self.acc_ret['PortfolioID'], self.acc_ret['netvalue']-1))
+		whole_.insert(len(whole_.columns),'gap',whole_.index.map(lambda id:real_value.get(id,0)-theory_value[id]))
 		whole_ = self.attri_standard(whole_)
+		#######################
 		connOF.delete_insert(whole_,'acc_attribution',['TradingDay'])
 
 
@@ -126,18 +140,17 @@ class StrategyClear(BasicPara):
 class StrategyBias(BasicPara):
 	def __init__(self):
 		super().__init__()
-		self.theory_dir = os.path.join(DATA_ROOT,'DailyWeight')
 		self.position = connOF.read('PortfolioID,Strategy,Code,Volume','daily_holding',"TradingDay = %r" %TodayStr)
 		self.bias_strategy = self.theory_strategy()
 
 	def theory_strategy(self):
-		strategy = MyDir(self.theory_dir).whole_file_path('.csv')
+		strategy = MyDir(STRA_ROOT).whole_file_path('.csv')
 		strategy = [k for k in strategy if 'S' in k or 'N' in k]
 		strategy = [str(k).split('_')[1].strip('.csv') for k in strategy]
 		return strategy
 
 	def theory_weight(self,Stra):
-		df = pd.read_csv("%s/W_%s.csv"%(self.theory_dir,Stra)).iloc[:,:2]
+		df = pd.read_csv("%s/W_%s.csv"%(STRA_ROOT,Stra)).iloc[:,:2]
 		df.columns = ['Code','Weight']
 		weight_sum = df['Weight'].sum()
 		if weight_sum <= 1:
@@ -154,7 +167,7 @@ class StrategyBias(BasicPara):
 	def total_bias(self):
 		tmp_df = self.position.query("Strategy in ('%s')" %"','".join(self.bias_strategy))
 		if len(tmp_df) == 0:
-			return
+			return DataFrame(columns=['PortfolioID','Strategy','Bias'])
 		######################
 		bias = tmp_df.groupby(['PortfolioID','Strategy']).apply(lambda dfk: self.strategy_bias(dfk)).reset_index()
 		_ = bias.rename(columns={0:'Bias'}, inplace=True)

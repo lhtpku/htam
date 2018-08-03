@@ -2,13 +2,14 @@ from ..base.cnst import *
 TimeTick = TimeNow()
 NowTick = TimeTick.get_now()
 ###############
-TodayStr     = '20180720'
+TodayStr = YesterdayStr
 YesterdayStr = all_jy_tradingday[all_jy_tradingday.index(TodayStr) - 1]
 print(TodayStr)
 #############################
-DATA_ROOT      = 'C:/Users/liuhongtao/Desktop/DailyHolding'
+DATA_ROOT = 'X:/DailyHolding'
+STRA_ROOT = 'X:/StrategyWeight'
 DATA_ROOT_TODAY = os.path.join(DATA_ROOT, TodayStr)
-DATA_ROOT_YESTERDAY = os.path.join(DATA_ROOT, YesterdayStr)
+DATA_ROOT_YESTERDAY = '%s/%s' %(DATA_ROOT, YesterdayStr) #os.path.join(DATA_ROOT, YesterdayStr)
 ###################################
 class BasicPara():
 	def __init__(self):
@@ -18,7 +19,6 @@ class BasicPara():
 	def main_run(self):
 		self.get_net_value()
 		self.all_col_by_order()
-		# self.alpha_para()
 		self.get_stra_type()
 
 	def df_standard(self,df):
@@ -29,7 +29,11 @@ class BasicPara():
 
 	def get_net_value(self):
 		self.ACCOUNT_PARA = {}
-		net_value =  pd.read_excel('%s/%s.xlsx' %(DATA_ROOT_YESTERDAY, YesterdayStr))
+		tmp_value_path = '%s/%s.xlsx' %(DATA_ROOT_YESTERDAY, YesterdayStr)
+		if not os.path.exists(tmp_value_path):
+			# print(tmp_value_path)
+			logging.info('can not find net-value path: %s' %tmp_value_path)
+		net_value =  pd.read_excel(tmp_value_path)
 		net_value.insert(0,'TradingDay',pd.to_datetime(YesterdayStr))
 		connOF.delete_insert(self.df_standard(net_value),'net_value_real',['TradingDay'])
 		############################
@@ -86,7 +90,7 @@ class BasicPara():
 		self.bench_pct = {bench:pct/100 for bench,pct in zip(tmp,data.Data[0])}
 
 	def get_stra_type(self):
-		self.strategy = pd.read_excel('%s/Strategy.xlsx'%DATA_ROOT)
+		self.strategy = pd.read_excel(os.path.join(STRA_ROOT,'Strategy.xlsx'))
 		self.all_strategy = self.strategy['Name'].tolist()
 		self.stra_map_type = dict(zip(self.strategy['Name'],self.strategy['StrategyType']))
 
@@ -117,10 +121,10 @@ class DataFromWind(BasicPara):
 		self.all_path = [self.holding_0_path, self.holding_1_path, self.trading_path]
 		############################
 		stephen_path = os.path.join(DATA_ROOT_TODAY, 'stephen')
-		# if os.path.exists(stephen_path):
-		# 	shutil.rmtree(stephen_path)
-		if not os.path.exists(stephen_path):
-			os.mkdir(stephen_path)
+		if os.path.exists(stephen_path):
+			shutil.rmtree(stephen_path)
+		# if not os.path.exists(stephen_path):
+		os.mkdir(stephen_path)
 
 	def path_df_concat(self,func,path_list):
 		df_list = map(func,path_list)
@@ -160,7 +164,7 @@ class DataFromWind(BasicPara):
 		bond_index = "dirtyprice,cleanprice,accruedinterest,accrueddays,durationifexercise".split(',')
 		cb_index   = ["close"]
 		fut_index  = ['trade_hiscode','settle']
-		op_index   = "close,delta,gamma,vega,theta,rho,us_impliedvol,us_change".split(',')
+		op_index   = "settle,delta,gamma,vega,theta,rho,us_impliedvol,us_change".split(',')
 		self.all_symbol_index = [[k.upper() for k in kk] for kk in [stk_index,bond_index,cb_index,fut_index,op_index]]
 		###########################
 
@@ -174,6 +178,8 @@ class DataFromWind(BasicPara):
 			date = 'tradeDate=%s'%datee
 			##############################
 			for i,cate in enumerate(self.all_symbol_cate):
+				if len(self.all_symbol[i]) == 0:
+					continue
 				if cate == 'STOCK':
 					wind_data = w.wss(self.all_symbol[i],self.all_symbol_index[i],date,'priceAdj=F')
 				else:
@@ -191,6 +197,11 @@ class DataFromWind(BasicPara):
 						continue
 					tmp_dict = dict(zip(df['CODE'],df[col]))
 					JSON.setdefault(col.lower(),{}).update(tmp_dict)
+			################################################
+			for col in [k.lower() for kk in self.all_symbol_index for k in kk]:
+				if col not in JSON.keys():
+					JSON[col] = {}
+			#######################################
 			with open(json_path,'w') as f:
 				json.dump(JSON,f)
 		return
@@ -245,11 +256,11 @@ class SymbolMapData(DataFromWind):
 						self.holding_0[col] = self.holding_0['Symbol'].map(self.json_data_1[col])
 					elif col == 'us_impliedvol':
 						tmp1,tmp2 = self.holding_0['Symbol'].map(self.json_data_1[col]), self.holding_0['Symbol'].map(self.json_data_0[col])
-						# print(self.json_data_1[col])
 						self.holding_0['iv'] = 100 * (tmp1 - tmp2)
 					else:
 						self.holding_0[col] = self.holding_0['Symbol'].map(self.json_data_0[col])
 				####
+				# print(w.tdayscount(YesterdayStr,TodayStr,"Days=Alldays"))
 				self.holding_0['op_t'] = w.tdayscount(YesterdayStr,TodayStr,"Days=Alldays").Data[0][0] / 365.0
 
 	def load_json_data(self):
