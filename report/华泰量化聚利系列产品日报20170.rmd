@@ -1,0 +1,109 @@
+---
+output: 
+  pdf_document:
+    fig_height: 14
+    fig_width: 12
+    keep_tex: yes
+    latex_engine: xelatex
+    includes:
+              in_header: header.tex
+  html_document:
+    fig_height: 14
+    fig_width: 12
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(xtable)
+library(ReporteRsjars)
+library(ReporteRs)
+library(rtable)
+library(rJava)
+library(xlsxjars)
+library(sysfonts)
+library(xlsx)
+library(ggplot2)
+library(Cairo)
+library(showtext)
+library(grid)
+library(gridExtra)
+library(reshape2)
+library(scales)
+```
+
+```{r,echo=FALSE,warning=FALSE}
+library(showtext)
+source('useFunctions.r',encoding="utf-8")
+showtext.begin()
+
+
+Path = getPath('聚利')
+
+biao_ge = ReadExcel(Path,1,T)[1:2,1:7]
+
+biao_ge[1,3] = ToDigit4(biao_ge[1,3])
+
+biao_ge[2,3] = ToDigit4(biao_ge[2,3])
+
+#for (i in 1:2) {
+#  for (j in 4:7) {
+#    biao_ge[i,j] = ToPercent(biao_ge[i,j])
+#  }
+#}
+
+#knitr::kable(biao_ge[1:2,1:7])
+
+#biao_ge = ReadExcel(Path,1,T)[1:2,1,3]
+
+#biao_ge[1,2] = ToDigit4(biao_ge[1,2])
+#biao_ge[2,2] = ToDigit4(biao_ge[2,2])
+knitr::kable(biao_ge[1:2,c(1,3)])
+
+showtext.end()
+```
+
+```{r, echo=FALSE,fig.showtext=TRUE,warning=FALSE}
+showtext.begin()
+
+
+data3 = ReadExcel(Path,3,F)
+data11 = getSplitData(data3,'当日业绩归因',c(2:3))
+CC1 = BarGraph(data11,4,13,10,'聚利一号当日业绩归因')
+data22 = getSplitData(data3,'累计业绩归因',c(2:3))
+BB1 = BarGraph(data22,4,13,10,'聚利一号累计业绩归因')
+
+
+
+data6 = ReadExcel(Path,6,F)
+data11 = getSplitData(data6,'当日业绩归因',c(2:3))
+CC2 = BarGraph(data11,4,13,10,'聚利二号当日业绩归因')
+data22 = getSplitData(data6,'累计业绩归因',c(2:3))
+BB2 = BarGraph(data22,4,13,10,'聚利二号累计业绩归因')
+
+
+
+
+JingZhi2 = ReadExcel(Path,2,F)
+AA1 = NetvalueGraph(JingZhi2,'2016-10-1','1 month','聚利一号净值曲线',15,9)
+JingZhi5 = ReadExcel(Path,5,F)
+AA2 = NetvalueGraph(JingZhi5,'2016-10-1','1 month','聚利二号净值曲线',15,9)
+
+
+data4 = getSplitData(ReadExcel(Path,4,F),'仓位',c(2:3))
+DD1 = BarGraph(data4,4,13,10,'聚利一号仓位')
+
+data8 = getSplitData(ReadExcel(Path,7,F),'仓位',c(2:3))
+DD2 = BarGraph(data8,4,13,10,'聚利二号仓位')
+
+
+
+showtext.begin()
+grid.arrange(AA1,AA2,BB1,BB2,ncol=2,nrow=2,widths=c(1,1),heights=c(1,1))
+showtext.end()
+
+showtext.begin()
+grid.newpage()
+grid.arrange(CC1,CC2,DD1,DD2,ncol=2,nrow=2,widths=c(1,1),heights=c(1,1))
+showtext.end()
+
+```
+

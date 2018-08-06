@@ -1,0 +1,82 @@
+---
+output: 
+  pdf_document:
+    fig_height: 15
+    fig_width: 12
+    keep_tex: yes
+    latex_engine: xelatex
+    includes:
+              in_header: header.tex
+  html_document:
+    fig_height: 14
+    fig_width: 12
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(xtable)
+library(ReporteRsjars)
+library(ReporteRs)
+library(rtable)
+library(rJava)
+library(xlsxjars)
+library(sysfonts)
+library(xlsx)
+library(ggplot2)
+library(Cairo)
+library(showtext)
+library(grid)
+library(gridExtra)
+library(reshape2)
+library(scales)
+library(WindR)
+```
+
+```{r,echo=FALSE,warning=FALSE}
+library(showtext)
+source('useFunctions.r',encoding="utf-8")
+showtext.begin()
+
+
+Path = getPath('对冲一号')
+
+biao_ge = ReadExcel(Path,5,T)
+biao_ge[1,3] = ToDigit4(biao_ge[1,3])
+for (kk in 4:6) {
+  biao_ge[1,kk] = ToPercent(biao_ge[1,kk])
+}
+
+knitr::kable(biao_ge[1,1:6])
+showtext.end()
+```
+
+```{r, echo=FALSE,fig.showtext=TRUE,warning=FALSE}
+showtext.begin()
+
+data2 = ReadExcel(Path,2,F)
+
+
+AttriDay = getSplitData(data2,'当日业绩归因',c(2:3))
+AA = BarGraph(AttriDay,4,13,10,'当日业绩归因')
+
+AttriMonth = getSplitData(data2,'当月业绩归因',c(2:3))
+CC = BarGraph(AttriMonth,4,13,10,'当月业绩归因')
+
+AttriAcc = getSplitData(data2,'累计业绩归因',c(2:3))
+EE = BarGraph(AttriAcc,4,13,10,'累计业绩归因')  
+
+
+JingZhi = ReadExcel(Path,4,F)[1:2]
+FF = NetvalueGraph(JingZhi,'2015-02-27','3 month','净值表现',15,9)
+
+data6 = ReadExcel(Path,6,F)[1:2]
+BB = BarGraph(data6,4,13,10,'当日及过去20日业绩') 
+
+data3 = ReadExcel(Path,3,F)[1:2]
+DD = BarGraph(data3,4,13,10,'月度业绩') 
+
+grid.arrange(AA,BB,CC,DD,EE,FF,ncol=2,nrow=3,widths=c(1,1),heights=c(1,1,1))
+
+showtext.end()
+
+```
+
